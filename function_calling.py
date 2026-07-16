@@ -64,18 +64,18 @@ tools = [
 
 # A running transcript of the conversation. We append the model's requests and
 # our results so the model has the full context on the second call.
-input_list = [{"role": "user", "content": "What's the weather in Tokyo?"}]
+chat_history = [{"role": "user", "content": "What's the weather in Tokyo?"}]
 
 # Step 2: first call. The model decides whether to use a tool.
 response = client.responses.create(
     model="gpt-5.4-mini",
     tools=tools,
-    input=input_list,
+    input=chat_history,
 )
 
 # Staple the model's output (which includes any function_call requests) onto
 # the transcript so it can see its own request on the second call.
-input_list += response.output
+chat_history += response.output
 
 # Step 3: run any function the model asked for, and return the result.
 for item in response.output:
@@ -101,7 +101,7 @@ for item in response.output:
 
         # Write the result back, tagged with the same call_id so the model
         # knows which request this answers.
-        input_list.append({
+        chat_history.append({
             "type": "function_call_output",
             "call_id": item.call_id,
             "output": str(result),
@@ -113,7 +113,7 @@ for item in response.output:
 final = client.responses.create(
     model="gpt-5.4-mini",
     tools=tools,
-    input=input_list,
+    input=chat_history,
 )
 
 print(final.output_text)
