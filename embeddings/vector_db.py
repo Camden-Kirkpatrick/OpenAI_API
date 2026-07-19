@@ -47,15 +47,41 @@ documents = [
     "Title: Money Heist. Type: TV Show. Genre: Heist Crime. A criminal mastermind manipulates hostages and police as he orchestrates an ambitious robbery.",
     "Title: The Queen's Gambit. Type: TV Show. Genre: Drama. An orphaned chess prodigy rises to the top of the game while battling addiction.",
     "Title: Marriage Story. Type: Movie. Genre: Drama. A stage director and his actor wife struggle through a coast to coast divorce.",
-    "Title: Klaus. Type: Movie. Genre: Animated Comedy. A selfish postman and a reclusive toymaker start a gift giving tradition that transforms a bitter town."
+    "Title: Klaus. Type: Movie. Genre: Animated Comedy. A selfish postman and a reclusive toymaker start a gift giving tradition that transforms a bitter town.",
+    # Three extra titles that reuse genres already in the list, so each has a match.
+    "Title: The Highwaymen. Type: Movie. Genre: Crime Drama. Two former Texas Rangers come out of retirement to track down the outlaws Bonnie and Clyde.",  # same genre as The Irishman
+    "Title: Army of Thieves. Type: Movie. Genre: Heist Crime. A mild mannered safecracker is recruited to pull off a string of impossible European bank vault heists.",  # same genre as Money Heist
+    "Title: Pieces of a Woman. Type: Movie. Genre: Drama. A grieving woman slowly comes to terms with loss in the aftermath of a devastating home birth."  # same genre as Roma / Marriage Story
+]
+
+# Structured metadata for each document, in the same order as `documents`. Chroma
+# does NOT embed these values; they're stored as-is so you can filter on them with
+# a `where` clause (e.g. where={"genre": "Crime Drama"}) during a query.
+metadatas = [
+    {"title": "Stranger Things", "type": "TV Show", "genre": "Sci-Fi Horror"},
+    {"title": "The Crown", "type": "TV Show", "genre": "Historical Drama"},
+    {"title": "Extraction", "type": "Movie", "genre": "Action Thriller"},
+    {"title": "The Irishman", "type": "Movie", "genre": "Crime Drama"},
+    {"title": "Bridgerton", "type": "TV Show", "genre": "Period Romance"},
+    {"title": "The Witcher", "type": "TV Show", "genre": "Fantasy Adventure"},
+    {"title": "Roma", "type": "Movie", "genre": "Drama"},
+    {"title": "Bird Box", "type": "Movie", "genre": "Post-Apocalyptic Thriller"},
+    {"title": "Money Heist", "type": "TV Show", "genre": "Heist Crime"},
+    {"title": "The Queen's Gambit", "type": "TV Show", "genre": "Drama"},
+    {"title": "Marriage Story", "type": "Movie", "genre": "Drama"},
+    {"title": "Klaus", "type": "Movie", "genre": "Animated Comedy"},
+    {"title": "The Highwaymen", "type": "Movie", "genre": "Crime Drama"},
+    {"title": "Army of Thieves", "type": "Movie", "genre": "Heist Crime"},
+    {"title": "Pieces of a Woman", "type": "Movie", "genre": "Drama"},
 ]
 
 #  Generate ids for each document
 ids = [str(i) for i in range(1, len(documents) + 1)]
 
-# Add the documents and IDs to the collection. This is where the OpenAI API is
-# actually called: each document is sent off to be embedded before it's stored.
-collection.add(ids=ids, documents=documents)
+# Add the documents, metadata, and IDs to the collection. This is where the OpenAI
+# API is actually called: each document is sent off to be embedded before it's
+# stored (the metadata is stored alongside without being embedded).
+collection.add(ids=ids, documents=documents, metadatas=metadatas)
 
 if __name__ == "__main__":
     # List the collections.
