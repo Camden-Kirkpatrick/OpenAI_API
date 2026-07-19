@@ -11,9 +11,10 @@ collection can be reloaded later for semantic search.
 import chromadb
 from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
 
-# Create a persistant client.
+# Create a persistent client.
 # The argument is a folder path where Chroma stores its data on disk. A relative
-# path like this one is created next to this script (inside the embeddings dir).
+# path like this one is resolved against the current working directory, so run
+# this script from inside the embeddings dir for the path to line up.
 client = chromadb.PersistentClient("netflix_db")
 
 # Start fresh: drop any existing collection so each build is deterministic.
@@ -23,7 +24,9 @@ try:
 except Exception:
     pass
 
-# Create a netflix_titles collection using the OpenAI Embedding function.
+# Create a netflix_titles collection. The embedding_function tells Chroma how to
+# turn documents into vectors; it's called automatically whenever documents are
+# added or queried, so we never call the OpenAI API by hand.
 collection = client.create_collection(
     name="netflix_titles",
     embedding_function=OpenAIEmbeddingFunction(model_name="text-embedding-3-small")
@@ -50,7 +53,8 @@ documents = [
 #  Generate ids for each document
 ids = [str(i) for i in range(1, len(documents) + 1)]
 
-# Add the documents and IDs to the collection.
+# Add the documents and IDs to the collection. This is where the OpenAI API is
+# actually called: each document is sent off to be embedded before it's stored.
 collection.add(ids=ids, documents=documents)
 
 if __name__ == "__main__":
