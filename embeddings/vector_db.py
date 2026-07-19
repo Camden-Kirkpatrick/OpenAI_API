@@ -1,11 +1,11 @@
 """
 Store Netflix titles in a persistent Chroma vector database.
 
-This script creates (and recreates) a Chroma collection that embeds each movie
-description with OpenAI's text-embedding-3-small model, adds a small set of movie
-documents keyed by id, and then prints the collection size and a preview of its
-contents. The embeddings are persisted to disk so the collection can be reloaded
-later for semantic search.
+This script drops any existing collection and rebuilds a fresh Chroma collection
+that embeds each movie description with OpenAI's text-embedding-3-small model,
+adds a small set of movie documents keyed by id, and then prints the collection
+size and a preview of its contents. The embeddings are persisted to disk so the
+collection can be reloaded later for semantic search.
 """
 
 import chromadb
@@ -16,23 +16,17 @@ from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
 # path like this one is created next to this script (inside the embeddings dir).
 client = chromadb.PersistentClient("netflix_db")
 
+# Start fresh: drop any existing collection so each build is deterministic.
+# delete_collection raises if it doesn't exist, so ignore that case.
+try:
+    client.delete_collection("netflix_titles")
+except Exception:
+    pass
+
 # Create a netflix_titles collection using the OpenAI Embedding function.
 collection = client.create_collection(
     name="netflix_titles",
     embedding_function=OpenAIEmbeddingFunction(model_name="text-embedding-3-small")
-)
-
-# List the collections.
-print(client.list_collections())
-
-# Delete the collection so we can recreate it cleanly.
-# create_collection raises if the name already exists, so we remove it first.
-client.delete_collection(name="netflix_titles")
-
-# Recreate the netflix_titles collection.
-collection = client.create_collection(
-  name="netflix_titles",
-  embedding_function=OpenAIEmbeddingFunction(model_name="text-embedding-3-small")
 )
 
 # The movie documents to embed. Each string is the text that gets turned into a
@@ -59,6 +53,9 @@ ids = [str(i) for i in range(1, len(documents) + 1)]
 # Add the documents and IDs to the collection.
 collection.add(ids=ids, documents=documents)
 
-# Print the collection size and first ten items.
-print(f"No. of documents: {collection.count()}")
-print(f"First ten documents: {collection.peek()}")
+if __name__ == "__main__":
+    # List the collections.
+    print(client.list_collections())
+    # Print the collection size and first ten items.
+    print(f"No. of documents: {collection.count()}")
+    print(f"First ten documents: {collection.peek()}")

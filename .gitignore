@@ -1,2 +1,3 @@
 # Chroma vector database
 embeddings/netflix_db/
+embeddings/__pycache__/
