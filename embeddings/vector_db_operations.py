@@ -1,56 +1,45 @@
 """
-Recommend similar movies from the Netflix vector database, then demo mutations.
+Explore how a Chroma collection stores and returns data (get / delete / upsert).
 
-Importing vector_db rebuilds the collection from scratch (its module-level code
-runs on import), so this script always starts from the same 15 seed titles.
+Importing vector_db rebuilds the collection from scratch on import, so this script
+always starts from the same 15 seed titles. It then walks through:
 
-The script then walks through four Chroma operations:
+  1. peek   - glance at the first few rows
+  2. get    - fetch specific rows by id (an exact lookup, no similarity search)
+  3. delete - remove rows by id
+  4. get    - with no arguments, return every remaining row
+  5. upsert - insert new rows (or overwrite ones whose id already exists)
 
-  1. get    - fetch the text of two "movies you liked" by id
-  2. query  - find the most semantically similar titles, restricted to Movies via
-              a metadata `where` filter so TV Shows are never recommended
-  3. upsert - add or update titles by id
-  4. delete - remove titles by id
-
-Each step prints its result so you can watch the collection change.
+get/peek all return the same "dict of columns" shape: a dict whose keys (ids,
+documents, metadatas) each hold a list, lined up by position so index i describes
+one movie across all of them.
 """
 
 from vector_db import client, collection
 
-# Two movies the user already likes. For each one we'll recommend similar MOVIES
-# (never TV Shows). Army of Thieves and Extraction sit in the crime/heist/action
-# cluster where Money Heist (a TV Show) is a close neighbour, so the type filter
-# below has a visible effect.
-reference_ids = ["14", "3"]  # Army of Thieves, Extraction
+# peek() is a quick glance at the collection: the first 10 rows.
+print(f"First 10 movies: {collection.peek()}")
 
-# Fetch the stored text for those ids. query() needs the raw text to embed.
-reference_texts = collection.get(ids=reference_ids)["documents"]
+# get(ids=...) fetches those specific rows by id. This is an exact key lookup, not
+# a similarity search, so no embeddings are involved and no OpenAI call is made.
+data = collection.get(ids=["1", "2", "3"])
 
-# Search for the nearest neighbours, but restrict the search to Movies via the
-# metadata filter so TV Shows can never be recommended. We ask for 3 because the
-# closest hit is always the reference movie itself, which we drop below.
-result = collection.query(
-    query_texts=reference_texts,
-    n_results=3,
-    where={"type": "Movie"}
-)
+# `data` is a dict of parallel lists. Index i picks out one movie across every
+# column, so data["ids"][i], data["documents"][i], and data["metadatas"][i] all
+# describe the same row.
+print("\nFirst 3 movies:")
+print("----------------")
+for i in range(len(data["ids"])):
+    print(f"ID = {data["ids"][i]}:\nDocument = {data["documents"][i]}\nMetadata = {data["metadatas"][i]}")
+    print("----------------")
 
-print("Similar movies:\n")
+# Remove three titles (ids 1-3) to show deletion by id.
+collection.delete(ids=["1", "2", "3"])
 
-# query() returns lists-of-lists: one inner list of matches per reference movie.
-# Zip the reference text together with its own matches (documents + metadatas) so
-# each pass of this outer loop handles one reference and prints one group.
-for ref_doc, docs, metas in zip(reference_texts, result["documents"], result["metadatas"]):
-    ref_title = ref_doc.split('.')[0]        # e.g. "Title: Army of Thieves"; compute once per group
-    print(f"Because you liked {ref_title}:")
-    # Inner loop pairs each matched document with its metadata (same movie).
-    for doc, meta in zip(docs, metas):
-        title = doc.split('.')[0]
-        if title == ref_title:
-            continue  # the closest hit is the reference movie itself, so skip it
-        # Title comes from the document text; genre comes from the metadata.
-        print(f"   {title} - Genre: {meta['genre']}")
-    print()  # blank line separates the two groups
+# get() with no arguments returns EVERY remaining row in the collection (so 12 of
+# the original 15 now that ids 1-3 are gone), same dict-of-columns shape as above.
+print("\nAfter deleting the first 3 movies")
+print(f"Movies:\n{collection.get()}")
 
 # Two new titles to write into the collection.
 new_data = [
@@ -65,9 +54,6 @@ collection.upsert(
     documents=[data["document"] for data in new_data]
 )
 
-# Remove the first four seed titles (ids 1-4) to show deletion by id.
-collection.delete(ids=["1", "2", "3", "4"])
-
-# Preview the collection after the upsert and delete so the changes are visible.
-print("After adding movies with id=999, and id=1000:")
-print(f"First ten documents: {collection.peek()}")
+# Fetch just the two ids we upserted to confirm they actually landed.
+print("\nAfter adding movies with id=999, and id=1000:")
+print(f"New movies: {collection.get(ids=["999", "1000"])}")
