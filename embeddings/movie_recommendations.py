@@ -41,14 +41,18 @@ print("Similar movies:\n")
 # match within that movie's results. The same [i][j] points at the same movie in
 # both lists, so documents give the text and metadatas give the genre.
 for i in range(len(reference_texts)):              # i = 0, then 1   (which reference movie)
+    # Each document starts with "Title: <name>.", so splitting on the first period
+    # and taking [0] gives just the "Title: <name>" part for a clean printout.
     ref_title = reference_texts[i].split('.')[0]
     print(f"Because you liked {ref_title}:")
 
     for j in range(len(result["documents"][i])):   # j = 0, 1, 2     (which match)
         doc = result["documents"][i][j]            # text at [i][j]
         meta = result["metadatas"][i][j]           # dict at [i][j]  (same movie)
-        title = doc.split('.')[0]
+        title = doc.split('.')[0]                  # "Title: <name>" of this match (same split as above)
+        # The closest match to a movie is always itself (distance ~0), so when this
+        # match's title equals the reference title, skip it and show real neighbours.
         if title == ref_title:
-            continue                               # skip the movie matching itself
+            continue
         print(f"   {title} - Genre: {meta['genre']}")
     print()                                        # blank line separates the two groups
